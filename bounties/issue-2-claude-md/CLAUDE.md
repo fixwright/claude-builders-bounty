@@ -6,18 +6,20 @@ inline. If a rule seems arbitrary, the reason tells you when it is safe to break
 
 ## 0. Stack (pinned — do not swap without discussion)
 
-| Layer | Choice | Why this one |
-|---|---|---|
-| Runtime | Node.js 20+, Next.js 15 App Router | Pages Router is legacy; App Router is the only supported pattern |
-| Language | TypeScript 5.x, `strict: true` | Strict catches the null/undefined bugs that dominate SaaS support tickets |
-| Database | SQLite | Single file, zero ops. Correct for SaaS up to ~100 GB / moderate write concurrency. Backups: `cp` when idle, `VACUUM INTO 'backup.db'` for live atomic snapshots (WAL-safe) |
-| DB client (local) | `better-sqlite3` (synchronous) | Fastest local SQLite, zero config. Sync API is fine because it runs in the Node server process |
-| DB client (prod) | Turso (`@libsql/client`) | Same SQLite dialect at the edge / serverless, where `better-sqlite3` (native binding, sync) cannot run. One dialect, two clients — SQL stays portable |
-| ORM | Drizzle ORM | No binary engine to download, migrations are plain readable SQL, no cold-start penalty. Prisma's engine model fights SQLite |
-| Auth | Auth.js v5 (`next-auth`) | **Only this one.** Lucia was deprecated by its author — do not introduce it into new code |
-| Validation | Zod, schemas in `lib/validators/` | Single source of truth: the same schema validates Server Action input and drives form errors |
-| Styling | Tailwind CSS 4.x | Utility classes keep styling colocated and themeable; no runtime CSS-in-JS cost |
-| IDs | `createId()` from `@paralleldrive/cuid2` as `TEXT PRIMARY KEY` | Not sequential → no ID enumeration attacks; TEXT because SQLite INTEGER PKs alias the rowid |
+| Layer | Choice | Pinned | Why this one |
+|---|---|---|---|
+| Runtime | Node.js 20+, Next.js 15 App Router | `next@15.x`, `react@19.x` | Pages Router is legacy; App Router is the only supported pattern |
+| Language | TypeScript, `strict: true` | `typescript@^5.6.x` | Strict catches the null/undefined bugs that dominate SaaS support tickets |
+| Database | SQLite | system SQLite ≥ 3.35 (no npm pin) | Single file, zero ops. Correct for SaaS up to ~100 GB / moderate write concurrency. Backups: `cp` when idle, `VACUUM INTO 'backup.db'` for live atomic snapshots (WAL-safe) |
+| DB client (local) | `better-sqlite3` (synchronous) | latest stable (native binding — pin in lockfile, not here) | Fastest local SQLite, zero config. Sync API is fine because it runs in the Node server process |
+| DB client (prod) | Turso (`@libsql/client`) | latest stable | Same SQLite dialect at the edge / serverless, where `better-sqlite3` (native binding, sync) cannot run. One dialect, two clients — SQL stays portable |
+| ORM | Drizzle ORM + `drizzle-kit` | `drizzle-orm@^0.35.x` | No binary engine to download, migrations are plain readable SQL, no cold-start penalty. Prisma's engine model fights SQLite |
+| Auth | Auth.js v5 (`next-auth`) | `next-auth@5.x` | **Only this one.** Lucia was deprecated by its author — do not introduce it into new code |
+| Validation | Zod, schemas in `lib/validators/` | `zod@^3.24.x` | Single source of truth: the same schema validates Server Action input and drives form errors |
+| Styling | Tailwind CSS | `tailwindcss@^4.0.x` | Utility classes keep styling colocated and themeable; no runtime CSS-in-JS cost |
+| IDs | `createId()` from `@paralleldrive/cuid2` as `TEXT PRIMARY KEY` | latest stable | Not sequential → no ID enumeration attacks; TEXT because SQLite INTEGER PKs alias the rowid |
+
+Pins are the minimum known-good versions — bump them deliberately with a reason, never blindly on `latest`.
 
 **What we deliberately do NOT use:** tRPC (Server Components + Server Actions cover it; one less codegen step), Prisma, Redux/Zustand for server data (the server is the source of truth).
 
